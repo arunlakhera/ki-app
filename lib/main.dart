@@ -10,7 +10,7 @@ import 'screens/verification_success_screen.dart';
 import 'screens/worker_home_screen.dart';
 import 'screens/edit_profile_screen.dart';
 
-final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
+final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
