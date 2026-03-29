@@ -8,6 +8,7 @@ import 'screens/signup_screen.dart';
 import 'screens/otp_verification_screen.dart';
 import 'screens/verification_success_screen.dart';
 import 'screens/worker_home_screen.dart';
+import 'screens/edit_profile_screen.dart';
 
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.dark);
 
@@ -47,6 +48,7 @@ class KiApp extends StatelessWidget {
             '/verification-success': (context) =>
                 const VerificationSuccessScreen(),
             '/worker-home': (context) => const WorkerHomeScreen(),
+            '/edit-profile': (context) => const EditProfileScreen(),
           },
         );
       },

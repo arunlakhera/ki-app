@@ -105,8 +105,17 @@ class _JobsScreenState extends State<JobsScreen> {
                   ),
                   CircleAvatar(
                     radius: 18,
-                    backgroundColor: tc.cardBackground,
-                    child: Icon(Icons.person, color: tc.textGrey, size: 20),
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.2),
+                    child: Text(
+                      'RS',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
                 ],
               ),
