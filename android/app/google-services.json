@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "303450658543",
+    "project_id": "ddnjobapp",
+    "storage_bucket": "ddnjobapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:303450658543:android:26f74843e76f8d81d82d1a",
+        "android_client_info": {
+          "package_name": "com.kiplatform.ki_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDz6R0sps9rCH0Nmf8P27df5Ew2DXx0SE0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

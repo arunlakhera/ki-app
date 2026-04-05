@@ -2,6 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../theme/app_theme_colors.dart';
+import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
+import '../services/storage_service.dart';
+import '../models/post_model.dart';
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({super.key});
@@ -10,10 +14,14 @@ class CreatePostScreen extends StatefulWidget {
 }
 
 class _CreatePostScreenState extends State<CreatePostScreen> {
+  final _authService = AuthService();
+  final _firestoreService = FirestoreService();
+  final _storageService = StorageService();
   final _postController = TextEditingController();
   bool _isLookingForWork = false;
   String? _location;
   List<String> _selectedSkills = [];
+  bool _publishing = false;
   File? _selectedImage;
 
   static const _locations = [
@@ -640,27 +648,81 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Row(
-                                children: [
-                                  Icon(
-                                    Icons.check_circle_rounded,
-                                    color: secondary,
-                                    size: 18,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text('Post published successfully!'),
-                                ],
-                              ),
-                              backgroundColor: tc.cardBackground,
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        },
+                        onPressed: _publishing
+                            ? null
+                            : () async {
+                                setState(() => _publishing = true);
+                                try {
+                                  final user = await _authService
+                                      .getUserProfile();
+                                  String? imageUrl;
+                                  final postId = DateTime.now()
+                                      .millisecondsSinceEpoch
+                                      .toString();
+                                  if (_selectedImage != null) {
+                                    imageUrl = await _storageService
+                                        .uploadPostImage(
+                                          file: _selectedImage!,
+                                          postId: postId,
+                                        );
+                                  }
+                                  final post = PostModel(
+                                    id: '',
+                                    authorUid: _authService.currentUser!.uid,
+                                    authorName: user?.name ?? 'User',
+                                    authorInitials: user?.initials ?? '?',
+                                    authorProfileImageUrl:
+                                        user?.profileImageUrl,
+                                    content: text,
+                                    imageUrl: imageUrl,
+                                    location: _location,
+                                    skills: _selectedSkills,
+                                    isAvailableForWork: _isLookingForWork,
+                                    createdAt: DateTime.now(),
+                                  );
+                                  await _firestoreService.createPost(post);
+                                  if (context.mounted) Navigator.pop(ctx);
+                                  if (context.mounted) Navigator.pop(context);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.check_circle_rounded,
+                                              color: secondary,
+                                              size: 18,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            const Text(
+                                              'Post published successfully!',
+                                            ),
+                                          ],
+                                        ),
+                                        backgroundColor: tc.cardBackground,
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: const Text(
+                                          'Failed to publish post.',
+                                        ),
+                                        backgroundColor: const Color(
+                                          0xFFE02424,
+                                        ),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  }
+                                } finally {
+                                  if (mounted)
+                                    setState(() => _publishing = false);
+                                }
+                              },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primary,
                           shape: RoundedRectangleBorder(

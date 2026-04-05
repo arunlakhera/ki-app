@@ -1,8 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../theme/app_theme_colors.dart';
 
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _checkAuth();
+  }
+
+  Future<void> _checkAuth() async {
+    await Future.delayed(const Duration(milliseconds: 1500));
+    if (!mounted) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      Navigator.pushNamedAndRemoveUntil(context, '/worker-home', (r) => false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,10 +40,7 @@ class SplashScreen extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    primary.withValues(alpha: 0.15),
-                    tc.background,
-                  ],
+                  colors: [primary.withValues(alpha: 0.15), tc.background],
                 ),
               ),
               child: SafeArea(
@@ -38,27 +55,62 @@ class SplashScreen extends StatelessWidget {
                         color: primary,
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
-                          BoxShadow(color: primary.withValues(alpha: 0.4), blurRadius: 24, offset: const Offset(0, 8)),
+                          BoxShadow(
+                            color: primary.withValues(alpha: 0.4),
+                            blurRadius: 24,
+                            offset: const Offset(0, 8),
+                          ),
                         ],
                       ),
                       child: const Center(
-                        child: Text('KI', style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: -1)),
+                        child: Text(
+                          'KI',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 36,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
-                    Text('KI Platform', style: TextStyle(color: tc.textWhite, fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+                    Text(
+                      'KI Platform',
+                      style: TextStyle(
+                        color: tc.textWhite,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    Text('Earn Through Your Skills', style: TextStyle(color: tc.textGrey, fontSize: 15)),
+                    Text(
+                      'Earn Through Your Skills',
+                      style: TextStyle(color: tc.textGrey, fontSize: 15),
+                    ),
                     const SizedBox(height: 32),
                     // Feature pills
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _Pill(label: '500+ Jobs', icon: Icons.work_outline_rounded, color: primary),
+                        _Pill(
+                          label: '500+ Jobs',
+                          icon: Icons.work_outline_rounded,
+                          color: primary,
+                        ),
                         const SizedBox(width: 10),
-                        _Pill(label: 'Verified', icon: Icons.verified_rounded, color: tertiary),
+                        _Pill(
+                          label: 'Verified',
+                          icon: Icons.verified_rounded,
+                          color: tertiary,
+                        ),
                         const SizedBox(width: 10),
-                        _Pill(label: 'Instant Pay', icon: Icons.currency_rupee_rounded, color: Theme.of(context).colorScheme.secondary),
+                        _Pill(
+                          label: 'Instant Pay',
+                          icon: Icons.currency_rupee_rounded,
+                          color: Theme.of(context).colorScheme.secondary,
+                        ),
                       ],
                     ),
                   ],
@@ -80,23 +132,50 @@ class SplashScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('Join thousands of skilled workers', style: TextStyle(color: tc.textWhite, fontSize: 17, fontWeight: FontWeight.w700), textAlign: TextAlign.center),
+                    Text(
+                      'Join thousands of skilled workers',
+                      style: TextStyle(
+                        color: tc.textWhite,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                     const SizedBox(height: 4),
-                    Text('Find jobs near you and get paid faster', style: TextStyle(color: tc.textGrey, fontSize: 13), textAlign: TextAlign.center),
+                    Text(
+                      'Find jobs near you and get paid faster',
+                      style: TextStyle(color: tc.textGrey, fontSize: 13),
+                      textAlign: TextAlign.center,
+                    ),
                     const SizedBox(height: 20),
                     ElevatedButton(
-                      onPressed: () => Navigator.pushNamed(context, '/user-type'),
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/user-type'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primary,
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: const [
-                          Icon(Icons.rocket_launch_rounded, color: Colors.white, size: 18),
+                          Icon(
+                            Icons.rocket_launch_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                           SizedBox(width: 8),
-                          Text('GET STARTED', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 1)),
+                          Text(
+                            'GET STARTED',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              letterSpacing: 1,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -106,10 +185,19 @@ class SplashScreen extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(color: tc.borderColor),
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
-                      child: Text('LOG IN TO MY ACCOUNT',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: tc.textWhite, letterSpacing: 0.5)),
+                      child: Text(
+                        'LOG IN TO MY ACCOUNT',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: tc.textWhite,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -137,11 +225,21 @@ class _Pill extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, color: color, size: 13),
-        const SizedBox(width: 5),
-        Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
-      ]),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 13),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
