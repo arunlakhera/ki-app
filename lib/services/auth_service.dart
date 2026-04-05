@@ -11,51 +11,6 @@ class AuthService {
   bool get isLoggedIn => _auth.currentUser != null;
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  // ── Email & Password Sign Up ─────────────────────────────────────────────
-
-  Future<UserCredential> signUpWithEmail({
-    required String name,
-    required String email,
-    required String password,
-    required String phone,
-    required String userType,
-  }) async {
-    final cred = await _auth.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-
-    // Update display name
-    await cred.user?.updateDisplayName(name);
-
-    // Create user document in Firestore
-    final now = DateTime.now();
-    final user = UserModel(
-      uid: cred.user!.uid,
-      name: name,
-      email: email,
-      phone: phone,
-      userType: userType,
-      createdAt: now,
-      updatedAt: now,
-    );
-    await _db.collection('users').doc(cred.user!.uid).set(user.toFirestore());
-
-    return cred;
-  }
-
-  // ── Email & Password Sign In ─────────────────────────────────────────────
-
-  Future<UserCredential> signInWithEmail({
-    required String email,
-    required String password,
-  }) async {
-    return await _auth.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-  }
-
   // ── Phone OTP ────────────────────────────────────────────────────────────
 
   Future<void> verifyPhone({
@@ -88,19 +43,41 @@ class AuthService {
     return await _auth.signInWithCredential(credential);
   }
 
-  // Link phone credential to existing email account
-  Future<UserCredential> linkPhoneCredential({
-    required String verificationId,
-    required String otp,
+  // ── Create User Profile (after phone verification) ─────────────────────
+
+  Future<void> createUserProfile({
+    required String name,
+    required String phone,
+    required String userType,
+    String? location,
+    List<String>? skills,
   }) async {
-    final credential = PhoneAuthProvider.credential(
-      verificationId: verificationId,
-      smsCode: otp,
+    if (currentUser == null) return;
+    final now = DateTime.now();
+    final user = UserModel(
+      uid: currentUser!.uid,
+      name: name,
+      phone: phone,
+      userType: userType,
+      location: location,
+      skills: skills ?? [],
+      createdAt: now,
+      updatedAt: now,
     );
-    return await _auth.currentUser!.linkWithCredential(credential);
+    await _db.collection('users').doc(currentUser!.uid).set(user.toFirestore());
+    await currentUser!.updateDisplayName(name);
   }
 
-  // ── Get User Profile ─────────────────────────────────────────────────────
+  // ── Check if user profile exists ───────────────────────────────────────
+
+  Future<bool> userProfileExists([String? uid]) async {
+    final id = uid ?? currentUser?.uid;
+    if (id == null) return false;
+    final doc = await _db.collection('users').doc(id).get();
+    return doc.exists;
+  }
+
+  // ── Get User Profile ───────────────────────────────────────────────────
 
   Future<UserModel?> getUserProfile([String? uid]) async {
     final id = uid ?? currentUser?.uid;
@@ -118,7 +95,7 @@ class AuthService {
     );
   }
 
-  // ── Update User Profile ──────────────────────────────────────────────────
+  // ── Update User Profile ────────────────────────────────────────────────
 
   Future<void> updateUserProfile(Map<String, dynamic> data) async {
     if (currentUser == null) return;
@@ -126,19 +103,13 @@ class AuthService {
     await _db.collection('users').doc(currentUser!.uid).update(data);
   }
 
-  // ── Password Reset ───────────────────────────────────────────────────────
-
-  Future<void> sendPasswordResetEmail(String email) async {
-    await _auth.sendPasswordResetEmail(email: email);
-  }
-
-  // ── Sign Out ─────────────────────────────────────────────────────────────
+  // ── Sign Out ───────────────────────────────────────────────────────────
 
   Future<void> signOut() async {
     await _auth.signOut();
   }
 
-  // ── Delete Account ───────────────────────────────────────────────────────
+  // ── Delete Account ─────────────────────────────────────────────────────
 
   Future<void> deleteAccount() async {
     if (currentUser == null) return;

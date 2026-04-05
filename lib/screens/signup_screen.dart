@@ -12,75 +12,86 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen> {
   final _authService = AuthService();
   final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
   final _phoneController = TextEditingController();
   final _cityController = TextEditingController();
   String _selectedSkill = 'Electrician';
   bool _agreed = false;
   bool _loading = false;
-  bool _obscurePassword = true;
 
   @override
   void dispose() {
     _nameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
     _phoneController.dispose();
     _cityController.dispose();
     super.dispose();
   }
 
-  Future<void> _signUp() async {
+  Future<void> _sendOtp() async {
     final name = _nameController.text.trim();
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
     final phone = _phoneController.text.trim();
     final city = _cityController.text.trim();
     final userType = ModalRoute.of(context)?.settings.arguments as String? ?? 'worker';
 
-    if (name.isEmpty || email.isEmpty || password.isEmpty || phone.isEmpty) {
-      _showError('Please fill in all required fields.');
+    if (name.isEmpty || phone.isEmpty) {
+      _showError('Please fill in name and mobile number.');
       return;
     }
-    if (password.length < 6) {
-      _showError('Password must be at least 6 characters.');
+    if (phone.length < 10) {
+      _showError('Please enter a valid 10-digit mobile number.');
       return;
     }
 
     setState(() => _loading = true);
-    try {
-      await _authService.signUpWithEmail(
-        name: name,
-        email: email,
-        password: password,
-        phone: '+91$phone',
-        userType: userType,
-      );
-      // Update extra profile fields
-      await _authService.updateUserProfile({
-        'location': city,
-        'skills': [_selectedSkill],
-      });
-      if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, '/verification-success', (r) => false);
-      }
-    } on FirebaseAuthException catch (e) {
-      _showError(_authErrorMessage(e.code));
-    } catch (e) {
-      _showError('Sign up failed. Please try again.');
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+    final fullPhone = '+91$phone';
+
+    _authService.verifyPhone(
+      phoneNumber: fullPhone,
+      onCodeSent: (verificationId, resendToken) {
+        if (mounted) setState(() => _loading = false);
+        Navigator.pushNamed(context, '/otp-verification', arguments: {
+          'verificationId': verificationId,
+          'resendToken': resendToken,
+          'phone': fullPhone,
+          'isSignup': true,
+          'name': name,
+          'city': city,
+          'skill': _selectedSkill,
+          'userType': userType,
+        });
+      },
+      onAutoVerified: (credential) async {
+        try {
+          await FirebaseAuth.instance.signInWithCredential(credential);
+          await _authService.createUserProfile(
+            name: name,
+            phone: fullPhone,
+            userType: userType,
+            location: city,
+            skills: [_selectedSkill],
+          );
+          if (mounted) {
+            Navigator.pushNamedAndRemoveUntil(context, '/verification-success', (r) => false);
+          }
+        } catch (_) {
+          if (mounted) setState(() => _loading = false);
+        }
+      },
+      onFailed: (e) {
+        if (mounted) {
+          setState(() => _loading = false);
+          _showError(_phoneErrorMessage(e.code));
+        }
+      },
+      onAutoRetrievalTimeout: (_) {},
+    );
   }
 
-  String _authErrorMessage(String code) {
+  String _phoneErrorMessage(String code) {
     switch (code) {
-      case 'email-already-in-use': return 'An account with this email already exists.';
-      case 'invalid-email': return 'Invalid email address.';
-      case 'weak-password': return 'Password is too weak.';
-      case 'operation-not-allowed': return 'Email sign-up is not enabled.';
-      default: return 'Sign up failed. Please try again.';
+      case 'invalid-phone-number': return 'Invalid phone number format.';
+      case 'too-many-requests': return 'Too many attempts. Try again later.';
+      case 'quota-exceeded': return 'SMS quota exceeded. Try again later.';
+      default: return 'Could not send OTP. Please try again.';
     }
   }
 
@@ -120,40 +131,6 @@ class _SignupScreenState extends State<SignupScreen> {
             const SizedBox(height: 8),
             _inputField(controller: _nameController, hint: 'Enter your full name', tc: tc, icon: Icons.person_outline),
             const SizedBox(height: 20),
-            _label('EMAIL ADDRESS', primary),
-            const SizedBox(height: 8),
-            _inputField(controller: _emailController, hint: 'Enter your email', tc: tc, icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
-            const SizedBox(height: 20),
-            _label('PASSWORD', primary),
-            const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(
-                color: tc.inputBackground,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: tc.borderColor),
-              ),
-              child: Row(children: [
-                Expanded(
-                  child: TextField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    style: TextStyle(color: tc.textWhite, fontSize: 15),
-                    decoration: InputDecoration(
-                      hintText: 'Create a password (min 6 chars)',
-                      hintStyle: TextStyle(color: tc.textGrey),
-                      prefixIcon: Icon(Icons.lock_outline, color: tc.textGrey, size: 20),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: tc.textGrey),
-                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                ),
-              ]),
-            ),
-            const SizedBox(height: 20),
             _label('MOBILE NUMBER', primary),
             const SizedBox(height: 8),
             Container(
@@ -172,11 +149,13 @@ class _SignupScreenState extends State<SignupScreen> {
                   child: TextField(
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
+                    maxLength: 10,
                     style: TextStyle(color: tc.textWhite, fontSize: 15),
                     decoration: InputDecoration(
                       hintText: 'Enter mobile number',
                       hintStyle: TextStyle(color: tc.textGrey),
                       border: InputBorder.none,
+                      counterText: '',
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
                     ),
                   ),
@@ -242,7 +221,7 @@ class _SignupScreenState extends State<SignupScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: (_agreed && !_loading) ? _signUp : null,
+                onPressed: (_agreed && !_loading) ? _sendOtp : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primary,
                   disabledBackgroundColor: primary.withValues(alpha: 0.4),
@@ -254,7 +233,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     : Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: const [
-                          Text('CREATE ACCOUNT', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 1)),
+                          Text('SEND OTP', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 1)),
                           SizedBox(width: 8),
                           Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
                         ],
@@ -282,7 +261,7 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget _label(String text, Color primary) =>
       Text(text, style: TextStyle(color: primary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.2));
 
-  Widget _inputField({required TextEditingController controller, required String hint, required AppThemeColors tc, required IconData icon, TextInputType? keyboardType}) {
+  Widget _inputField({required TextEditingController controller, required String hint, required AppThemeColors tc, required IconData icon}) {
     return Container(
       decoration: BoxDecoration(
         color: tc.inputBackground,
@@ -291,7 +270,6 @@ class _SignupScreenState extends State<SignupScreen> {
       ),
       child: TextField(
         controller: controller,
-        keyboardType: keyboardType,
         style: TextStyle(color: tc.textWhite, fontSize: 15),
         decoration: InputDecoration(
           hintText: hint,
